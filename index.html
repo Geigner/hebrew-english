@@ -52,7 +52,10 @@
 
   <div id="rooms-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col max-h-[80vh]">
-      <div class="flex justify-between items-center border-b pb-3 mb-4"><h3 id="modal-title" class="font-bold">ניהול חדרים (אנגלית)</h3><button onclick="closeRoomsManager()" class="text-slate-400 text-2xl hover:text-slate-600" aria-label="סגור חלון">✕</button></div>
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <h3 id="modal-title" class="font-bold text-slate-800">ניהול חדרים (אנגלית)</h3>
+        <button onclick="closeRoomsManager()" class="text-slate-400 text-2xl hover:text-slate-600" aria-label="סגור חלון">✕</button>
+      </div>
       <div id="rooms-list-container" class="overflow-y-auto flex-1 flex flex-col gap-2"></div>
       <div class="mt-4 pt-3 border-t flex justify-between gap-2">
          <button onclick="createNewRoom()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold btn-action">+ חדר חדש</button>
@@ -110,10 +113,16 @@
     function handleKeyPress(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
     async function callApi(action, payload = {}) {
-      const q = new URLSearchParams({ action, roomId: currentRoomId, password: cachedAdminPassword, data: JSON.stringify(payload) });
+      const q = new URLSearchParams({ 
+        action, 
+        roomId: currentRoomId, 
+        password: cachedAdminPassword, 
+        data: JSON.stringify(payload) 
+      });
       const res = await fetch(`${API_URL}?${q.toString()}`);
+      if (!res.ok) throw new Error(`שגיאת תקשורת: ${res.status}`);
       const json = await res.json();
-      if (json.status !== 'success') throw new Error(json.message || 'Error from API');
+      if (json.status !== 'success') throw new Error(json.message || 'שגיאת API');
       return json.data;
     }
 
