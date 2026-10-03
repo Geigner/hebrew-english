@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -57,15 +56,18 @@
       <div id="rooms-list-container" class="overflow-y-auto flex-1 flex flex-col gap-2"></div>
       <div class="mt-4 pt-3 border-t flex justify-between gap-2">
          <button onclick="createNewRoom()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold btn-action">+ חדר חדש</button>
-         <div class="flex gap-2"><button onclick="clearCurrentChat()" class="text-rose-600 text-xs font-bold border border-rose-100 px-3 py-2 rounded-lg btn-action">איפוס</button><button onclick="closeRoomsManager()" class="bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold">סגור</button></div>
+         <div class="flex gap-2">
+           <button onclick="clearCurrentChat()" class="text-rose-600 text-xs font-bold border border-rose-100 px-3 py-2 rounded-lg btn-action">איפוס</button>
+           <button onclick="closeRoomsManager()" class="bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold">סגור</button>
+         </div>
       </div>
     </div>
   </div>
   <div id="copy-toast" class="copy-toast">הועתק ללוח!</div>
 
   <script>
-    // יש להדביק כאן את ה-URL של הפריסה החדשה מ-Apps Script
-const API_URL = "https://script.google.com/macros/s/AKfybyy1QAXrvYIyl_cBfhh7_Mx862XPtX4hfw7ocJ2aS8uSF9YISJWn63gtiGjEa5l_q2S/exec";    let localHistory = [], isSending = false, cachedAdminPassword = '';
+    const API_URL = "https://script.google.com/macros/s/AKfybyy1QAXrvYIyl_cBfhh7_Mx862XPtX4hfw7ocJ2aS8uSF9YISJWn63gtiGjEa5l_q2S/exec";
+    let localHistory = [], isSending = false, cachedAdminPassword = '';
     const currentClientId = (localStorage.getItem('bridge_client_id_en') || 'c_' + Math.random().toString(36).substr(2, 9));
     localStorage.setItem('bridge_client_id_en', currentClientId);
 
