@@ -247,6 +247,16 @@
             display: block;
         }
         
+        .room-bar {
+            background: #e2e8f0;
+            padding: 6px 15px;
+            font-size: 0.8rem;
+            color: #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #cbd5e1;
+        }
         .typing-indicator {
             font-size: 0.8rem;
             color: #64748b;
@@ -307,6 +317,24 @@
         }
         button.send-btn:hover { background-color: #1e40af; }
         button.send-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+
+        button.mic-btn {
+            background-color: #64748b;
+            color: white;
+            border: none;
+            padding: 0 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: auto;
+            margin-top: 0;
+            font-size: 1.1rem;
+            transition: background 0.2s;
+        }
+        button.mic-btn:hover { background-color: #475569; }
+        button.mic-btn.listening {
+            background-color: #ef4444;
+            animation: pulse-ring-en 1.5s infinite;
+        }
         
         /* QR Modal */
         .qr-modal {
@@ -419,16 +447,22 @@
             </div>
         </header>
 
+        <div class="room-bar">
+            <span id="room-indicator">חדר: כללי</span>
+            <span id="active-users-indicator" style="font-weight: bold; color: #1e3a8a;">👥 משתתפים בחדר: טוען...</span>
+        </div>
+
         <div id="chat-window"></div>
 
         <div class="input-area" id="input-area-box">
             <div id="typing-status" class="typing-indicator"></div>
             <div class="controls-row">
                 <span>תרגום אוטומטי: <strong>🇮🇱 עברית ⇄ 🇬🇧 EN</strong></span>
-                <span id="room-indicator">חדר: כללי</span>
+                <span>לחץ 🎤 לדיבור קולי</span>
             </div>
             <div class="input-row">
-                <textarea id="message-input" placeholder="Type a message... / הקלד משפט..." oninput="updateTypingStatus()" onkeydown="checkEnter(event)"></textarea>
+                <textarea id="message-input" placeholder="Type a message or click mic... / הקלד משפט או דבר..." oninput="updateTypingStatus()" onkeydown="checkEnter(event)"></textarea>
+                <button id="mic-btn-element" class="mic-btn" onclick="toggleSpeechRecognition()" title="דבר אל המיקרופון 🎤">🎤</button>
                 <button id="send-btn-element" class="send-btn" onclick="sendMessage()" title="Send / שלח">🚀</button>
             </div>
         </div>
@@ -500,7 +534,21 @@
             const inputAreaBox = document.getElementById('input-area-box');
             const connectionBadge = document.getElementById('connection-badge');
             const typingStatus = document.getElementById('typing-status');
+            const activeUsersIndicator = document.getElementById('active-users-indicator');
             const roomDocRef = doc(db, "rooms", roomId);
+
+            // עדכון נוכחות משתמש בחדר כל כמה שניות (Heartbeat) כדי לדעת מי מחובר
+            async function updatePresence() {
+                try {
+                    await setDoc(roomDocRef, {
+                        participants: {
+                            [userName]: serverTimestamp()
+                        }
+                    }, { merge: true });
+                } catch(e) {}
+            }
+            updatePresence();
+            setInterval(updatePresence, 10000); // כל 10 שניות מעדכן שהמשתמש חי ופעיל
 
             onSnapshot(roomDocRef, (docSnap) => {
                 connectionBadge.innerHTML = '🟢 מחובר לענן';
@@ -516,6 +564,25 @@
                 }
 
                 const data = docSnap.data();
+                
+                // חישוב משתתפים פעילים ב-15 השניות האחרונות
+                if (data && data.participants) {
+                    const now = Date.now();
+                    const activeNames = [];
+                    for (const [user, time] of Object.entries(data.participants)) {
+                        const timestampVal = time?.toMillis ? time.toMillis() : 0;
+                        if ((now - timestampVal) < 15000) {
+                            activeNames.push(user);
+                        }
+                    }
+                    if (activeNames.length > 0) {
+                        activeUsersIndicator.innerHTML = `👥 מחוברים (${activeNames.length}): ${escapeHtml(activeNames.join(', '))}`;
+                    } else {
+                        activeUsersIndicator.innerHTML = `👥 מחוברים: אף אחד כרגע`;
+                    }
+                }
+
+                // טיפול בחיווי מקליד
                 if (data && data.typing && data.typing.user && data.typing.user !== userName) {
                     const isStillActive = (Date.now() - (data.typing.time?.toMillis() || 0)) < 6000;
                     if (isStillActive) {
@@ -619,6 +686,64 @@
                 window.speechSynthesis.onvoiceschanged = () => {
                     window.speechSynthesis.getVoices();
                 };
+            }
+
+            // מנגנון זיהוי דיבור (Speech-to-Text)
+            let recognition = null;
+            let isListening = false;
+
+            window.toggleSpeechRecognition = function() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    alert("הדפדפן שלך אינו תומך בזיהוי קולי. מומלץ להשתמש בדפדפן Chrome.");
+                    return;
+                }
+
+                const micBtn = document.getElementById('mic-btn-element');
+                const input = document.getElementById('message-input');
+
+                if (isListening) {
+                    if (recognition) recognition.stop();
+                    return;
+                }
+
+                recognition = new SpeechRecognition();
+                // נזהה לפי זיהוי אוטומטי של שפת הקלט או ברירת מחדל לאנגלית/עברית (נבחר עברית/אנגלית לפי הצורך או en-US)
+                recognition.lang = 'en-US'; 
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    micBtn.classList.add('listening');
+                    micBtn.innerText = '⏹️';
+                };
+
+                recognition.onresult = (event) => {
+                    const speechToText = event.results[0][0].transcript;
+                    input.value += (input.value ? ' ' : '') + speechToText;
+                    updateTypingStatus();
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error", event.error);
+                    stopMicUI();
+                };
+
+                recognition.onend = () => {
+                    stopMicUI();
+                };
+
+                recognition.start();
+            };
+
+            function stopMicUI() {
+                isListening = false;
+                const micBtn = document.getElementById('mic-btn-element');
+                if (micBtn) {
+                    micBtn.classList.remove('listening');
+                    micBtn.innerText = '🎤';
+                }
             }
 
             let typingTimeout;
@@ -818,7 +943,7 @@
                 if (confirm(`האם אתה בטוח שברצונך למחוק את החדר "${roomDocId}" וכל ההיסטוריה שלו?`)) {
                     try {
                         await deleteDoc(doc(db, "rooms", roomDocId));
-                        alert("החדר נמחק בהצלחה!");
+                        appalert("החדר נמחק בהצלחה!");
                         loadActiveRooms();
                     } catch (e) {
                         console.error("Error deleting room:", e);
