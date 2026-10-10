@@ -501,7 +501,7 @@
                             </div>
                             <button id="btn-${docSnap.id}" class="speak-btn" onclick="speakText('${escapeHtml(textToSpeak).replace(/'/g, "\\'")}', '${speakLang}', 'btn-${docSnap.id}')" title="השמע 🔊">🔊</button>
                         </div>
-                        <span class="meta">${formatTime(data.timestamp)} (Double click to copy)</span>
+                        <span class="meta">${formatTime(data.timestamp)}</span>
                     `;
                     chatWindow.appendChild(msgDiv);
                 });
@@ -687,7 +687,7 @@
                 window.open(`https://api.whatsapp.com/send?text=${message}`, '_blank');
             }
 
-            window.loadActiveRooms = async function`() {
+            window.loadActiveRooms = async function() {
                 const container = document.getElementById('rooms-container');
                 container.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">טוען חדרים מהענן...</p>';
 
