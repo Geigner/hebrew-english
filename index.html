@@ -6,8 +6,8 @@
     <title>גשר שפות עברית 🇮🇱 ⇄ 🇬🇧 אנגלית - ניהול מערכת</title>
     <style>
         :root {
-            --primary-color: #1e40af; /* כחול אנגלי קלאסי ועמוק */
-            --secondary-color: #3b82f6;
+            --primary-color: #0284c7; /* כחול בהיר/שמיים לממשק האנגלי */
+            --secondary-color: #0369a1;
             --bg-color: #f1f5f9;
             --card-bg: #ffffff;
             --text-color: #1e293b;
@@ -61,7 +61,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        button:hover { background-color: #1d4ed8; }
+        button:hover { background-color: #0369a1; }
         .room-link-box {
             background: #f8fafc;
             border: 1px dashed #cbd5e1;
@@ -187,7 +187,7 @@
         }
         .message.english {
             align-self: flex-end;
-            background-color: #eff6ff;
+            background-color: #f0f9ff;
             border-left: 5px solid var(--primary-color);
             direction: ltr;
             text-align: left;
@@ -256,7 +256,7 @@
         textarea:focus {
             outline: none;
             border-color: var(--secondary-color);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
         button.send-btn {
             background-color: var(--primary-color);
@@ -270,7 +270,7 @@
             margin-top: 0;
             font-size: 1.25rem;
         }
-        button.send-btn:hover { background-color: #1d4ed8; }
+        button.send-btn:hover { background-color: #0369a1; }
         button.send-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
         .closed-notice {
             display: flex;
@@ -357,8 +357,8 @@
                 <span id="room-indicator">חדר: כללי</span>
             </div>
             <div class="input-row">
-                <textarea id="message-input" placeholder="הקלד משפט... / Type here..." onkeydown="checkEnter(event)"></textarea>
-                <button id="send-btn-element" class="send-btn" onclick="sendMessage()" title="שלח / Send">🚀</button>
+                <textarea id="message-input" placeholder="Type a message... / הקלד משפט..." onkeydown="checkEnter(event)"></textarea>
+                <button id="send-btn-element" class="send-btn" onclick="sendMessage()" title="Send / שלח">🚀</button>
             </div>
         </div>
         
@@ -432,7 +432,8 @@
                     const isHebrew = data.originalLang === 'he';
                     msgDiv.className = `message ${isHebrew ? 'hebrew' : 'english'}`;
                     
-                    const textToSpeak = isHebrew ? data.translatedText : data.originalText;
+                    // תוקן: תמיד מקריאים את התרגום בשפה הנגדית
+                    const textToSpeak = data.translatedText; 
                     const speakLang = isHebrew ? 'en-US' : 'he-IL';
                     const author = data.author || "אורח/ת";
 
@@ -455,17 +456,32 @@
                 }, 100);
             });
 
-            window.speakText = function(text, lang) {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = lang;
-                    utterance.rate = 0.9;
-                    window.speechSynthesis.speak(utterance);
-                } else {
+            window.speakText = function(text, langCode) {
+                if (!('speechSynthesis' in window)) {
                     alert("דפדפן זה אינו תומך בהקראה קולית.");
+                    return;
                 }
+
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = langCode;
+                utterance.rate = 0.9;
+
+                const voices = window.speechSynthesis.getVoices();
+                const targetVoice = voices.find(voice => voice.lang.startsWith(langCode.slice(0, 2)));
+                
+                if (targetVoice) {
+                    utterance.voice = targetVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
             };
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    window.speechSynthesis.getVoices();
+                };
+            }
 
             window.sendMessage = async function() {
                 const input = document.getElementById('message-input');
@@ -560,7 +576,7 @@
 
             window.copyLink = function() {
                 const linkText = document.getElementById('generated-link').innerText;
-                navigator.clipboard.writeText(linkText).then(() => {
+                navigator.clipboard.writeText(linkTest).then(() => {
                     alert("הקישור הועתק בהצלחה!");
                 });
             }
