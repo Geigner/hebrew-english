@@ -229,6 +229,10 @@
             color: #64748b;
             margin-top: 4px;
             display: block;
+            text-align: left;
+        }
+        .message.english .meta {
+            text-align: right;
         }
         
         .room-bar {
@@ -760,7 +764,7 @@
         function formatTime(ts) {
             if (!ts) return 'הרגע...';
             const d = ts.toDate();
-            return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'});
+            return d.toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'});
         }
     </script>
 </body>
